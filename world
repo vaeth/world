@@ -1,0 +1,272 @@
+#! /bin/bash
+
+Echo() {
+	printf '%s\n' "${*}"
+}
+
+Fatal() {
+	printf '%s: %s\n' "${0##*/}" "${*}" >&2
+	exit 1
+}
+
+eprefix="${EPREFIX}"
+world="${eprefix}/var/lib/portage/world"
+worldsets="${world}_sets"
+save="${eprefix}/etc/portage/world"
+savesets="${save}_sets"
+
+Usage() {
+	Echo "Usage: ${0##*/} [option] command
+command should be one of the following:
+save
+	Save the world file      ${world}
+	and the world sets file  ${worldsets}
+	to the backup locations  ${save}
+	and                      ${savesets}
+restore
+	Restore the world file and world sets file from the backups.
+test | depclean
+	Compare installed packages with those from \"would\" (see below).
+	This gives you a precise information which packages are obsolete
+	or missing in the world/world_sets file.
+	The output depends on the options:
+	-2: Print candidates for cleaning (installed but would be installed).
+	-1: Print candidates for installing (would be installed but are not).
+	default: print both, but candidates for installing with leading tabs.
+	For instance, the following is similar to emerge -a --depclean:
+		emerge -a \`world -2 depclean\`
+diff | comm
+	Compare the world file and world sets file with the backups.
+	The output depends on the options:
+	-2 Print packages in world but not in the backup
+	-1 Print packages in the backup but not in world
+	default: print both, but packages in the backup with leading tabs.
+would | empty | pretend
+	Print (sorted) all packages which would be installed with
+		emerge -eD --with-bdeps=y @system @world
+installed
+	print (sorted) all installed packages
+world | cat
+	print (sorted) the world packages and sets
+saved
+	print (sorted) the saved packages and sets
+worldpkgs
+	print (sorted) the world packages (without the sets)
+savedpkgs
+	print (sorted) the saved packages (without the sets)
+worldsets
+	print (sorted) the world sets (without packages)
+savedsets
+	print (sorted) the saved sets (without packages)
+help
+	print this help
+
+options:
+-0	do not prefix output of exact versions with \"=\"
+-1	explained above
+-2	explained above
+-f	force copying even if files appear to be identical
+-q	quiet"
+	exit ${1:-1}
+}
+
+commopts="-3"
+quiet=false
+force=false
+exact='='
+OPTIND=1
+while getopts '012fq?hH' opt
+do	case "${opt}" in
+	0)	exact='';;
+	1)	commopts="-13";;
+	2)	commopts="-23";;
+	f)	force=:;;
+	q)	quiet=:;;
+	*)	Usage 0;;
+esac
+done
+shift $(( ${OPTIND} - 1 ))
+[ ${#} -eq 1 ] || Usage
+
+if ${quiet}
+then
+Info() {
+	:
+}
+else
+Info() {
+	Echo "${*}"
+}
+fi
+
+MustHave() {
+	test -r "${1}" || Fatal "${1} does not exist or is not readable"
+}
+
+TouchCp() {
+	touch --reference="${1}" -- "${2}" >/dev/null 2>&1
+}
+
+have_diff=HaveDiff
+HaveDiff() {
+	if command -v diff >/dev/null 2>&1
+	then	have_diff=:
+	else	have_diff=false
+	fi
+	${have_diff}
+}
+
+Diff() {
+	${have_diff} || return
+	test -r "${2}" && diff -q -- "${@}" >/dev/null 2>&1
+}
+
+Copy() {
+	if ! ${force} && Diff "${@}"
+	then	Info "no need to copy ${1} -> ${2}"
+		return
+	fi
+	Info "copying ${1} -> ${2}"
+	sort -- "${1}" >"${2}"
+	cps=${?}
+	TouchCp "${1}" "${2}"
+	return ${cps}
+}
+
+CopyOpt() {
+	MustHave "${1}"
+	Copy "${1}" "${2}"
+	cpos=${?}
+	if test -r "${3}"
+	then	Copy "${3}" "${4}" || return ${?}
+	else	Info "${3} not copied as it does not exist"
+	fi
+	return ${cpos}
+}
+
+Save() {
+	CopyOpt "${world}" "${save}" "${worldsets}" "${savesets}"
+}
+
+
+Restore() {
+	CopyOpt "${save}" "${world}" "${savesets}" "${worldsets}"
+}
+
+Would() {
+	would=''
+	would="`emerge --ignore-default-opts --color=n --quiet=y \
+		--with-bdeps=y -Dep @system @world`" || {
+		Echo "${would}"
+		Fatal 'emerge -p failed'
+	}
+	sede='s!^[^]]*\] *\([^ ]*\).*$!'"${exact}"'\1!p'
+	exc='Echo "${would}" | sed -n -e "${sede}" | sort'
+	e=false
+}
+
+Installed() {
+	cd "${eprefix}/var/db/pkg" >/dev/null 2>&1 \
+		|| Fatal "cannot cd to ${eprefix}/var/db/pkg"
+	sede='s!^\./\([^/]*/\)!'"${exact}"'\1!p'
+	exc='find . -type d | sed -n -e "${sede}" | sort'
+	e=false
+}
+
+PrintFile() {
+	eval "MustHave \"\${${1}}\"
+	exc='sort -- \"\${${1}}\"'"
+	e=:
+}
+
+PrintFileOpt() {
+	e=:
+	eval "MustHave \"\${${1}}\"
+	if test -r \"\${${2}}\"
+	then	exc='sort -- \"\${${1}}\" \"\${${2}}\"'
+	else	exc='sort -- \"\${${1}}\"'
+	fi"
+}
+
+SavedPkgs() {
+	PrintFile save
+}
+
+WorldPkgs() {
+	PrintFile world
+}
+
+SavedSets() {
+	PrintFile savesets
+}
+
+WorldSets() {
+	PrintFile worldsets
+}
+
+Saved() {
+	PrintFileOpt save savesets
+}
+
+World() {
+	PrintFileOpt world worldsets
+}
+
+Exec() {
+	${1}
+	${e} && exc="eval ${exc}"
+	eval "${exc}"
+}
+
+Comm() {
+	${1}
+	first=`eval "${exc}"`
+	${2}
+	${e} && exc="eval ${exc}"
+	comm ${commopts} -- <(Echo "${first}") <(eval "${exc}")
+}
+
+case "${1}" in
+save)
+	Save
+;;
+restore)
+	Restore
+;;
+test)
+	Comm Installed Would
+;;
+diff|comm)
+	Comm World Saved
+;;
+would|empty|pretend)
+	Exec Would
+;;
+installed)
+	Exec Installed
+;;
+world|cat)
+	Exec World
+;;
+saved)
+	Exec Saved
+;;
+worldpkg*)
+	Exec WorldPkgs
+;;
+savedpkg*)
+	Exec SavedPkgs
+;;
+worldset*)
+	Exec WorldSets
+;;
+savedset*)
+	Exec SavedSets
+;;
+help)
+	Usage 0
+;;
+*)
+	Usage
+;;
+esac
