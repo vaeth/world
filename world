@@ -94,8 +94,26 @@ Info() {
 	:
 }
 else
+Max() {
+	maxlen=0
+	for maxi
+	do	maxl=${#maxi}
+		[ ${maxlen} -lt ${maxl} ] && maxlen=${maxl}
+	done
+	printf '%s' ${maxlen}
+}
 Info() {
-	Echo "${*}"
+	if [ ${#} -eq 3 ]
+	then	printf "${info}"'\n' "${@}"
+		return
+	elif [ ${#} -ne 6 ]
+	then	printf "${info}"' (%s)\n' "${@}"
+		return
+	fi
+	info='%-'
+	info="${info}"`Max "${1}" "${2}"`'s %-'
+	info="${info}"`Max "${3}" "${4}"`'s -> %-'
+	info="${info}"`Max "${5}" "${6}"`'s'
 }
 fi
 
@@ -123,10 +141,10 @@ Diff() {
 
 Copy() {
 	if ! ${force} && Diff "${@}"
-	then	Info "no need to copy ${1} -> ${2}"
+	then	Info 'skipping' "${1}" "${2}" 'unnecessary'
 		return
 	fi
-	Info "copying ${1} -> ${2}"
+	Info 'copying' "${1}" "${2}"
 	sort -- "${1}" >"${2}"
 	cps=${?}
 	TouchCp "${1}" "${2}"
@@ -135,11 +153,12 @@ Copy() {
 
 CopyOpt() {
 	MustHave "${1}"
+	Info 'copying' 'skipping' "${1}" "${3}" "${2}" "${4}"
 	Copy "${1}" "${2}"
 	cpos=${?}
 	if test -r "${3}"
 	then	Copy "${3}" "${4}" || return ${?}
-	else	Info "${3} not copied as it does not exist"
+	else	Info 'skipping' "${3}"  "${4}" 'nonexistent'
 	fi
 	return ${cpos}
 }
