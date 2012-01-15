@@ -1,5 +1,8 @@
 #! /bin/bash
 
+unset LC_ALL
+export LC_COLLATE='C'
+
 Echo() {
 	printf '%s\n' "${*}"
 }
@@ -16,7 +19,7 @@ save="${eprefix}/etc/portage/world"
 savesets="${save}_sets"
 
 Usage() {
-	Echo "Usage: ${0##*/} [option] command
+	Echo "Usage: ${0##*/} [option] command [arguments for grep]
 command should be one of the following:
 save
 	Save the world file      ${world}
@@ -48,8 +51,12 @@ installed
 	print (sorted) all installed packages
 world | cat
 	print (sorted) the world packages and sets
-saved
+saved | sworld | scat
 	print (sorted) the saved packages and sets
+grep
+	grep the (sorted) world packages and sets
+sgrep
+	grep the (sorted) saved packages and sets
 worldpkgs
 	print (sorted) the world packages (without the sets)
 savedpkgs
@@ -86,7 +93,7 @@ do	case "${opt}" in
 esac
 done
 shift $(( ${OPTIND} - 1 ))
-[ ${#} -eq 1 ] || Usage
+[ ${#} -gt 0 ] || Usage
 
 if ${quiet}
 then
@@ -181,7 +188,6 @@ Would() {
 	}
 	sede='s!^[^]]*\] *\([^ ]*\).*$!'"${exact}"'\1!p'
 	exc='Echo "${would}" | sed -n -e "${sede}" | sort'
-	e=false
 }
 
 Installed() {
@@ -189,17 +195,14 @@ Installed() {
 		|| Fatal "cannot cd to ${eprefix}/var/db/pkg"
 	sede='s!^\./\([^/]*/\)!'"${exact}"'\1!p'
 	exc='find . -type d | sed -n -e "${sede}" | sort'
-	e=false
 }
 
 PrintFile() {
 	eval "MustHave \"\${${1}}\"
 	exc='sort -- \"\${${1}}\"'"
-	e=:
 }
 
 PrintFileOpt() {
-	e=:
 	eval "MustHave \"\${${1}}\"
 	if test -r \"\${${2}}\"
 	then	exc='sort -- \"\${${1}}\" \"\${${2}}\"'
@@ -233,57 +236,82 @@ World() {
 
 Exec() {
 	${1}
-	${e} && exc="eval ${exc}"
 	eval "${exc}"
+}
+
+Pipe() {
+	${1}
+	shift
+	eval "${exc}" | "${@}"
 }
 
 Comm() {
 	${1}
 	first=`eval "${exc}"`
 	${2}
-	${e} && exc="eval ${exc}"
 	comm ${commopts} -- <(Echo "${first}") <(eval "${exc}")
 }
 
 case "${1}" in
 save)
+	[ ${#} -eq 1 ] || Usage
 	Save
 ;;
 restore)
+	[ ${#} -eq 1 ] || Usage
 	Restore
 ;;
 test)
+	[ ${#} -eq 1 ] || Usage
 	Comm Installed Would
 ;;
 diff|comm)
+	[ ${#} -eq 1 ] || Usage
 	Comm World Saved
 ;;
 would|empty|pretend)
+	[ ${#} -eq 1 ] || Usage
 	Exec Would
 ;;
 installed)
+	[ ${#} -eq 1 ] || Usage
 	Exec Installed
 ;;
 world|cat)
+	[ ${#} -eq 1 ] || Usage
 	Exec World
 ;;
-saved)
+saved|sworld|scat)
+	[ ${#} -eq 1 ] || Usage
 	Exec Saved
 ;;
+grep)
+	shift
+	Pipe World grep "${@}"
+;;
+sgrep)
+	shift
+	Pipe Saved grep "${@}"
+;;
 worldpkg*)
+	[ ${#} -eq 1 ] || Usage
 	Exec WorldPkgs
 ;;
 savedpkg*)
+	[ ${#} -eq 1 ] || Usage
 	Exec SavedPkgs
 ;;
 worldset*)
+	[ ${#} -eq 1 ] || Usage
 	Exec WorldSets
 ;;
 savedset*)
+	[ ${#} -eq 1 ] || Usage
 	Exec SavedSets
 ;;
 help)
-	Usage 0
+	[ ${#} -eq 1 ]
+	Usage ${?}
 ;;
 *)
 	Usage

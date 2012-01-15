@@ -6,4 +6,4 @@ _arguments -s -S -A '-*' : \
 '-0[do not prefix exact versions with "="]' \
 '(-2)-1[print only what is installed but not saved/in @world]' \
 '(-1)-2[print only what is saved/in @world but not installed]' \
-'1:command:(save restore test depclean diff comm would empty pretend installed world cat saved worldpkgs savedpkgs worldsets savedsets help)'
+'1:command:(save restore test depclean diff comm would empty pretend installed world cat saved sworld scat grep sgrep worldpkgs savedpkgs worldsets savedsets help)'
