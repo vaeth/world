@@ -12,7 +12,7 @@ This project has several purposes:
    and it can compare them with 3.
 
 For instance, the following is similar to emerge --depclean:
-emerge `world -2 test`
+emerge --unmerge `world -2 test`
 
 For more details, see the output of "world help".
 

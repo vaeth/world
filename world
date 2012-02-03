@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /usr/bin/env sh
 
 unset LC_ALL
 export LC_COLLATE='C'
@@ -9,7 +9,8 @@ Echo() {
 
 Fatal() {
 	printf '%s: %s\n' "${0##*/}" "${*}" >&2
-	exit 1
+	exitstatus=1
+	exit ${exitstatus}
 }
 
 eprefix="${EPREFIX}"
@@ -37,7 +38,7 @@ test | depclean
 	-1: Print candidates for installing (would be installed but are not).
 	default: print both, but candidates for installing with leading tabs.
 	For instance, the following is similar to emerge -a --depclean:
-		emerge -a \`world -2 depclean\`
+		emerge -a --unmerge \`world -2 depclean\`
 diff | comm
 	Compare the world file and world sets file with the backups.
 	The output depends on the options:
@@ -82,7 +83,7 @@ quiet=false
 force=false
 exact='='
 OPTIND=1
-while getopts '012fq?hH' opt
+while getopts '012fqhH?' opt
 do	case "${opt}" in
 	0)	exact='';;
 	1)	commopts="-13";;
@@ -199,14 +200,14 @@ Installed() {
 
 PrintFile() {
 	eval "MustHave \"\${${1}}\"
-	exc='sort -- \"\${${1}}\"'"
+	exc='exec sort -- \"\${${1}}\"'"
 }
 
 PrintFileOpt() {
 	eval "MustHave \"\${${1}}\"
 	if test -r \"\${${2}}\"
-	then	exc='sort -- \"\${${1}}\" \"\${${2}}\"'
-	else	exc='sort -- \"\${${1}}\"'
+	then	exc='exec sort -- \"\${${1}}\" \"\${${2}}\"'
+	else	exc='exec sort -- \"\${${1}}\"'
 	fi"
 }
 
@@ -237,6 +238,20 @@ World() {
 Exec() {
 	${1}
 	eval "${exc}"
+	exit
+}
+
+exitstatus=0
+process=''
+tempdir=''
+Cleanup() {
+	trap : EXIT HUP INT TERM
+	[ -z "${process}" ] || kill "${process}"
+	process=''
+	[ -n "${tempdir}" ] && test -d "${tempdir}" && rm -rf -- "${tempdir}"
+	tempdir=''
+	trap - EXIT HUP INT TERM
+	exit ${exitstatus}
 }
 
 Pipe() {
@@ -247,9 +262,26 @@ Pipe() {
 
 Comm() {
 	${1}
-	first=`eval "${exc}"`
+	first=`eval ${exc}`
 	${2}
-	comm ${commopts} -- <(Echo "${first}") <(eval "${exc}")
+	if ( eval 'echo <(echo 1)' ) >/dev/null 2>&1
+	then	eval 'comm ${commopts} -- <(Echo "${first}") <(eval ${exc})'
+		exit
+	fi
+	trap Cleanup EXIT HUP INT TERM
+	tempdir=`umask 077 && mktemp -d "/tmp/${0##*/}.XXXXXXXX"` && \
+		[ -n "${tempdir}" ] && test -d "${tempdir}" || \
+		Fatal 'cannot create temporary directory'
+	fifo="${tempdir}/fifo"
+	mkfifo -- "${fifo}" || Fatal "cannot create fifo ${fifo}"
+	Echo "${first}" >"${fifo}" &
+	process="${!}"
+	exc="${exc#exec }"
+	eval "${exc}" | comm ${commopts} -- "${fifo}" -
+	exitstatus=${?}
+	process=''
+	Cleanup
+	exit ${exitstatus}
 }
 
 case "${1}" in
