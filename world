@@ -85,7 +85,7 @@ exact='='
 OPTIND=1
 while getopts '012fqhH?' opt
 do	case ${opt} in
-	0)	exact='';;
+	0)	exact=;;
 	1)	commopts='-13';;
 	2)	commopts='-23';;
 	f)	force=:;;
@@ -179,7 +179,7 @@ Restore() {
 }
 
 Would() {
-	would=''
+	would=
 	would="`emerge --ignore-default-opts --color=n --quiet=y \
 		--with-bdeps=y -Dep @system @world`" || {
 		Echo "${would}"
@@ -240,14 +240,14 @@ Exec() {
 }
 
 exitstatus=0
-process=''
-tempdir=''
+process=
+tempdir=
 Cleanup() {
 	trap : EXIT HUP INT TERM
 	[ -z "${process}" ] || kill "${process}"
-	process=''
+	process=
 	[ -n "${tempdir}" ] && test -d "${tempdir}" && rm -rf -- "${tempdir}"
-	tempdir=''
+	tempdir=
 	trap - EXIT HUP INT TERM
 	exit ${exitstatus}
 }
@@ -260,10 +260,10 @@ Pipe() {
 
 Comm() {
 	${1}
-	first=`eval ${exc}`
+	first=`eval "${exc}"`
 	${2}
 	if ( eval 'echo <(echo 1)' ) >/dev/null 2>&1
-	then	eval 'comm ${commopts} -- <(Echo "${first}") <(eval ${exc})'
+	then	eval 'comm ${commopts} -- <(Echo "${first}") <(eval "${exc}")'
 		exit
 	fi
 	trap Cleanup EXIT HUP INT TERM
@@ -277,7 +277,7 @@ Comm() {
 	exc="${exc#exec }"
 	eval "${exc}" | comm ${commopts} -- "${fifo}" -
 	exitstatus=${?}
-	process=''
+	process=
 	Cleanup
 	exit ${exitstatus}
 }
