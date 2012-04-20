@@ -1,7 +1,7 @@
 #! /usr/bin/env sh
 
 unset LC_ALL
-export LC_COLLATE='C'
+export LC_COLLATE=C
 
 Echo() {
 	printf '%s\n' "${*}"
@@ -74,22 +74,35 @@ options:
 -1	explained above
 -2	explained above
 -f	force copying even if files appear to be identical
--q	quiet"
+-q	quiet
+-H	do not update statusline when calling emerge"
 	exit ${1:-1}
 }
+
+${statusline} && case ${TERM} in
+screen*)
+	softstatus=:;;
+xterm*|rxvt*|aterm*|konsole*|gnome*|Eterm*|kterm*|interix*)
+	softstatus=false;;
+*)
+	statusline=false;;
+esac
+
 
 commopts='-3'
 quiet=false
 force=false
 exact='='
+stausline=:
 OPTIND=1
-while getopts '012fqhH?' opt
+while getopts '012fqHh?' opt
 do	case ${opt} in
 	0)	exact=;;
 	1)	commopts='-13';;
 	2)	commopts='-23';;
 	f)	force=:;;
 	q)	quiet=:;;
+	H)	statusline=false;;
 	*)	Usage 0;;
 esac
 done
@@ -123,6 +136,12 @@ Info() {
 	info=${info}`Max "${5}" "${6}"`'s'
 }
 fi
+
+Title() {
+	${statusline} || return 0
+	! ${softstatus} || printf '\033k%s: %s\\' "${0##*/}" "${*}"
+	printf '\033]0;%s: %s\007' "${0##*/}" "${*}"
+}
 
 MustHave() {
 	test -r "${1}" || Fatal "${1} does not exist or is not readable"
@@ -179,12 +198,15 @@ Restore() {
 }
 
 Would() {
+	Title "calling emerge"
 	would=
-	would="`emerge --ignore-default-opts --color=n --quiet=y \
-		--with-bdeps=y -Dep @system @world`" || {
+	would=`emerge --ignore-default-opts --color=n --quiet=y \
+		--with-bdeps=y -Dep @system @world` || {
+		Title 'error'
 		Echo "${would}"
-		Fatal 'emerge -p failed'
+		Fatal 'emerge failed'
 	}
+	Title 'success'
 	sede='s!^[^]]*\] *\([^ ]*\).*$!'"${exact}"'\1!p'
 	exc='Echo "${would}" | sed -n -e "${sede}" | sort'
 }
