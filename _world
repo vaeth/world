@@ -3,7 +3,6 @@ _arguments -s -S -A '-*' : \
 '(1 -)'{'-h','-\\?'}'[help]' \
 '-f[print only what is installed but not saved/in @world]' \
 '-q[quiet]' \
-'-H[do not update statusline]' \
 '-0[do not prefix exact versions with "="]' \
 '(-2)-1[print only what is installed but not saved/in @world]' \
 '(-1)-2[print only what is saved/in @world but not installed]' \

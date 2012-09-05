@@ -74,35 +74,22 @@ options:
 -1	explained above
 -2	explained above
 -f	force copying even if files appear to be identical
--q	quiet
--H	do not update statusline when calling emerge"
+-q	quiet"
 	exit ${1:-1}
 }
-
-${statusline} && case ${TERM} in
-screen*)
-	softstatus=:;;
-xterm*|rxvt*|aterm*|konsole*|gnome*|Eterm*|kterm*|interix*)
-	softstatus=false;;
-*)
-	statusline=false;;
-esac
-
 
 commopts='-3'
 quiet=false
 force=false
 exact='='
-stausline=:
 OPTIND=1
-while getopts '012fqHh?' opt
+while getopts '012fqh?' opt
 do	case ${opt} in
 	0)	exact=;;
 	1)	commopts='-13';;
 	2)	commopts='-23';;
 	f)	force=:;;
 	q)	quiet=:;;
-	H)	statusline=false;;
 	*)	Usage 0;;
 esac
 done
@@ -136,12 +123,6 @@ Info() {
 	info=${info}`Max "${5}" "${6}"`'s'
 }
 fi
-
-Title() {
-	${statusline} || return 0
-	! ${softstatus} || printf '\033k%s: %s\\' "${0##*/}" "${*}"
-	printf '\033]0;%s: %s\007' "${0##*/}" "${*}"
-}
 
 MustHave() {
 	test -r "${1}" || Fatal "${1} does not exist or is not readable"
@@ -198,15 +179,12 @@ Restore() {
 }
 
 Would() {
-	Title "calling emerge"
 	would=
 	would=`emerge --ignore-default-opts --color=n --quiet=y \
 		--with-bdeps=y -Dep @system @world` || {
-		Title 'error'
 		Echo "${would}"
 		Fatal 'emerge failed'
 	}
-	Title 'success'
 	sede='s!^[^]]*\] *\([^ ]*\).*$!'"${exact}"'\1!p'
 	exc='Echo "${would}" | sed -n -e "${sede}" | sort'
 }
@@ -307,65 +285,49 @@ Comm() {
 case ${1} in
 save)
 	[ ${#} -eq 1 ] || Usage
-	Save
-;;
+	Save;;
 restore)
 	[ ${#} -eq 1 ] || Usage
-	Restore
-;;
+	Restore;;
 test)
 	[ ${#} -eq 1 ] || Usage
-	Comm Installed Would
-;;
+	Comm Installed Would;;
 diff|comm)
 	[ ${#} -eq 1 ] || Usage
-	Comm World Saved
-;;
+	Comm World Saved;;
 would|empty|pretend)
 	[ ${#} -eq 1 ] || Usage
-	Exec Would
-;;
+	Exec Would;;
 installed)
 	[ ${#} -eq 1 ] || Usage
-	Exec Installed
-;;
+	Exec Installed;;
 world|cat)
 	[ ${#} -eq 1 ] || Usage
-	Exec World
-;;
+	Exec World;;
 saved|sworld|scat)
 	[ ${#} -eq 1 ] || Usage
-	Exec Saved
-;;
+	Exec Saved;;
 grep)
 	shift
-	Pipe World grep "${@}"
-;;
+	Pipe World grep "${@}";;
 sgrep)
 	shift
-	Pipe Saved grep "${@}"
-;;
+	Pipe Saved grep "${@}";;
 worldpkg*)
 	[ ${#} -eq 1 ] || Usage
-	Exec WorldPkgs
-;;
+	Exec WorldPkgs;;
 savedpkg*)
 	[ ${#} -eq 1 ] || Usage
-	Exec SavedPkgs
-;;
+	Exec SavedPkgs;;
 worldset*)
 	[ ${#} -eq 1 ] || Usage
-	Exec WorldSets
-;;
+	Exec WorldSets;;
 savedset*)
 	[ ${#} -eq 1 ] || Usage
-	Exec SavedSets
-;;
+	Exec SavedSets;;
 help)
 	[ ${#} -eq 1 ]
-	Usage ${?}
-;;
+	Usage ${?};;
 *)
-	Usage
-;;
+	Usage;;
 esac
