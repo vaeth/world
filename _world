@@ -1,4 +1,6 @@
 #compdef world
+local context state state_descr line
+typeset -A opt_args
 _arguments -s -S -A '-*' : \
 '(1 -)'{'-h','-\\?'}'[help]' \
 '-f[print only what is installed but not saved/in @world]' \
@@ -6,4 +8,36 @@ _arguments -s -S -A '-*' : \
 '-0[do not prefix exact versions with "="]' \
 '(-2)-1[print only what is installed but not saved/in @world]' \
 '(-1)-2[print only what is saved/in @world but not installed]' \
-'1:command:(save restore test depclean diff comm would empty pretend installed world cat saved sworld scat grep sgrep worldpkgs savedpkgs worldsets savedsets help)'
+'1:command:->cmds'
+local ret=$?
+case $state in
+cmds)
+	local cmds
+	cmds=(
+	'save:save world/world_sets files to backups'
+	'restore:restore world/world_sets files from backups'
+	'test:compare installed packages with those from "would"'
+	'depclean:compare installed packages with those from "would"'
+	'diff:compare world/world_sets files with backups'
+	'comm:compare world/world_sets files with backups'
+	'would:what gives emerge -eD --with-bdeps=y @system @world'
+	'empty:what gives emerge -eD --with-bdeps=y @system @world'
+	'pretend:what gives emerge -eD --with-bdeps=y @system @world'
+	'installed:output all installed packages'
+	'world:print world packages/sets'
+	'cat:print world packages/sets'
+	'saved:print world/world_sets from backups'
+	'sworld:print world/world_sets from backups'
+	'scat:print world/world_sets from backups'
+	'grep:grep world/world_sets'
+	'sgrep:grep world/world_sets backups'
+	'worldpkg:print world packages (without sets)'
+	'savedpkg:print world packages (without sets) from backup'
+	'worldsets:print world_sets (without packages)'
+	'savedsets:print world_sets (without packages) from backup'
+	'help:print help'
+	)
+	_describe -t commands 'command' cmds
+	ret=$?;;
+esac
+return ret

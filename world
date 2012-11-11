@@ -193,7 +193,7 @@ Installed() {
 	cd "${eprefix}/var/db/pkg" >/dev/null 2>&1 \
 		|| Fatal "cannot cd to ${eprefix}/var/db/pkg"
 	sede='s!^\./\([^/]*/\)!'"${exact}"'\1!p'
-	exc='find . -type d | sed -n -e "${sede}" | sort'
+	exc='find . -type d -print | sed -n -e "${sede}" | sort'
 }
 
 PrintFile() {
