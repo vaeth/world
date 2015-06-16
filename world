@@ -4,29 +4,29 @@ unset LC_ALL
 export LC_COLLATE=C
 
 Echo() {
-	printf '%s\n' "${*}"
+	printf '%s\n' "$*"
 }
 
 Fatal() {
-	Echo "${0##*/}: ${*}" >&2
+	Echo "${0##*/}: $*" >&2
 	exitstatus=1
-	exit ${exitstatus}
+	exit $exitstatus
 }
 
-eprefix=${EPREFIX}
-world="${eprefix}/var/lib/portage/world"
-worldsets="${world}_sets"
-save="${eprefix}/etc/portage/world"
-savesets="${save}_sets"
+eprefix=$EPREFIX
+world=$eprefix/var/lib/portage/world
+worldsets=${world}_sets
+save=$eprefix/etc/portage/world
+savesets=${save}_sets
 
 Usage() {
 	Echo "Usage: ${0##*/} [option] command [arguments for grep]
 command should be one of the following:
 save
-	Save the world file      ${world}
-	and the world sets file  ${worldsets}
-	to the backup locations  ${save}
-	and                      ${savesets}
+	Save the world file      $world
+	and the world sets file  $worldsets
+	to the backup locations  $save
+	and                      $savesets
 restore
 	Restore the world file and world sets file from the backups.
 test | depclean
@@ -84,7 +84,7 @@ force=false
 exact='='
 OPTIND=1
 while getopts '012fqh?' opt
-do	case ${opt} in
+do	case $opt in
 	0)	exact=;;
 	1)	commopts='-13';;
 	2)	commopts='-23';;
@@ -93,10 +93,10 @@ do	case ${opt} in
 	*)	Usage 0;;
 esac
 done
-shift $(( ${OPTIND} - 1 ))
-[ ${#} -gt 0 ] || Usage
+shift $(( $OPTIND - 1 ))
+[ $# -gt 0 ] || Usage
 
-if ${quiet}
+if $quiet
 then	Info() {
 	:
 }
@@ -105,31 +105,31 @@ Max() {
 	maxlen=0
 	for maxi
 	do	maxl=${#maxi}
-		[ ${maxlen} -lt ${maxl} ] && maxlen=${maxl}
+		[ $maxlen -lt $maxl ] && maxlen=$maxl
 	done
-	printf '%s' ${maxlen}
+	printf '%s' $maxlen
 }
 Info() {
-	if [ ${#} -eq 3 ]
-	then	printf "${info}"'\n' "${@}"
+	if [ $# -eq 3 ]
+	then	printf "$info"'\n' "$@"
 		return
-	elif [ ${#} -ne 6 ]
-	then	printf "${info}"' (%s)\n' "${@}"
+	elif [ $# -ne 6 ]
+	then	printf "$info"' (%s)\n' "$@"
 		return
 	fi
 	info='%-'
-	info=${info}`Max "${1}" "${2}"`'s %-'
-	info=${info}`Max "${3}" "${4}"`'s -> %-'
-	info=${info}`Max "${5}" "${6}"`'s'
+	info=$info`Max "$1" "$2"`'s %-'
+	info=$info`Max "$3" "$4"`'s -> %-'
+	info=$info`Max "$5" "$6"`'s'
 }
 fi
 
 MustHave() {
-	test -r "${1}" || Fatal "${1} does not exist or is not readable"
+	test -r "$1" || Fatal "$1 does not exist or is not readable"
 }
 
 TouchCp() {
-	touch -r "${1}" -- "${2}" >/dev/null 2>&1
+	touch -r "$1" -- "$2" >/dev/null 2>&1
 }
 
 have_diff=HaveDiff
@@ -138,74 +138,74 @@ HaveDiff() {
 	then	have_diff=:
 	else	have_diff=false
 	fi
-	${have_diff}
+	$have_diff
 }
 
 Diff() {
-	${have_diff} || return
-	test -r "${2}" && diff -q -- "${@}" >/dev/null 2>&1
+	$have_diff || return
+	test -r "$2" && diff -q -- "$@" >/dev/null 2>&1
 }
 
 Copy() {
-	if ! ${force} && Diff "${@}"
-	then	Info 'skipping' "${1}" "${2}" 'unnecessary'
+	if ! $force && Diff "$@"
+	then	Info 'skipping' "$1" "$2" 'unnecessary'
 		return
 	fi
-	Info 'copying' "${1}" "${2}"
-	sort -- "${1}" >"${2}"
-	cps=${?}
-	TouchCp "${1}" "${2}"
-	return ${cps}
+	Info 'copying' "$1" "$2"
+	sort -- "$1" >"$2"
+	cps=$?
+	TouchCp "$1" "$2"
+	return $cps
 }
 
 CopyOpt() {
-	MustHave "${1}"
-	Info 'copying' 'skipping' "${1}" "${3}" "${2}" "${4}"
-	Copy "${1}" "${2}"
-	cpos=${?}
-	if test -r "${3}"
-	then	Copy "${3}" "${4}" || return ${?}
-	else	Info 'skipping' "${3}"  "${4}" 'nonexistent'
+	MustHave "$1"
+	Info 'copying' 'skipping' "$1" "$3" "$2" "$4"
+	Copy "$1" "$2"
+	cpos=$?
+	if test -r "$3"
+	then	Copy "$3" "$4" || return $?
+	else	Info 'skipping' "$3"  "$4" 'nonexistent'
 	fi
-	return ${cpos}
+	return $cpos
 }
 
 Save() {
-	CopyOpt "${world}" "${save}" "${worldsets}" "${savesets}"
+	CopyOpt "$world" "$save" "$worldsets" "$savesets"
 }
 
 Restore() {
-	CopyOpt "${save}" "${world}" "${savesets}" "${worldsets}"
+	CopyOpt "$save" "$world" "$savesets" "$worldsets"
 }
 
 Would() {
 	would=
 	would=`emerge --ignore-default-opts --color=n --quiet=y \
 		--with-bdeps=y -Dep @system @world` || {
-		Echo "${would}"
+		Echo "$would"
 		Fatal 'emerge failed'
 	}
-	sede='s!^[^]]*\] *\([^ ]*\).*$!'"${exact}"'\1!p'
-	exc='Echo "${would}" | sed -n -e "${sede}" | sort'
+	sede='s!^[^]]*\] *\([^ ]*\).*$!'"$exact"'\1!p'
+	exc='Echo "$would" | sed -n -e "$sede" | sort'
 }
 
 Installed() {
-	cd "${eprefix}/var/db/pkg" >/dev/null 2>&1 \
-		|| Fatal "cannot cd to ${eprefix}/var/db/pkg"
-	sede='s!^\./\([^/]*/\)!'"${exact}"'\1!p'
-	exc='find . -type d -print | sed -n -e "${sede}" | sort'
+	cd "$eprefix/var/db/pkg" >/dev/null 2>&1 \
+		|| Fatal "cannot cd to $eprefix/var/db/pkg"
+	sede='s!^\./\([^/]*/\)!'"$exact"'\1!p'
+	exc='find . -type d -print | sed -n -e "$sede" | sort'
 }
 
 PrintFile() {
-	eval "MustHave \"\${${1}}\"
-	exc='exec sort -- \"\${${1}}\"'"
+	eval "MustHave \"\${$1}\"
+	exc='exec sort -- \"\${$1}\"'"
 }
 
 PrintFileOpt() {
-	eval "MustHave \"\${${1}}\"
-	if test -r \"\${${2}}\"
-	then	exc='exec sort -- \"\${${1}}\" \"\${${2}}\"'
-	else	exc='exec sort -- \"\${${1}}\"'
+	eval "MustHave \"\${$1}\"
+	if test -r \"\${$2}\"
+	then	exc='exec sort -- \"\${$1}\" \"\${$2}\"'
+	else	exc='exec sort -- \"\${$1}\"'
 	fi"
 }
 
@@ -234,8 +234,8 @@ World() {
 }
 
 Exec() {
-	${1}
-	eval "${exc}"
+	$1
+	eval "$exc"
 	exit
 }
 
@@ -244,90 +244,90 @@ process=
 tempdir=
 Cleanup() {
 	trap : EXIT HUP INT TERM
-	[ -z "${process:++}" ] || kill "${process}"
+	[ -z "${process:++}" ] || kill "$process"
 	process=
-	[ -n "${tempdir:++}" ] && test -d "${tempdir}" && rm -rf -- "${tempdir}"
+	[ -n "${tempdir:++}" ] && test -d "$tempdir" && rm -rf -- "$tempdir"
 	tempdir=
 	trap - EXIT HUP INT TERM
-	exit ${exitstatus}
+	exit $exitstatus
 }
 
 Pipe() {
-	${1}
+	$1
 	shift
-	eval "${exc}" | "${@}"
+	eval "$exc" | "$@"
 }
 
 Comm() {
-	${1}
-	first=`eval "${exc}"`
-	${2}
+	$1
+	first=`eval "$exc"`
+	$2
 	if ( eval 'echo <(echo 1)' ) >/dev/null 2>&1
-	then	eval 'comm ${commopts} -- <(Echo "${first}") <(eval "${exc}")'
+	then	eval 'comm $commopts -- <(Echo "$first") <(eval "$exc")'
 		exit
 	fi
 	trap Cleanup EXIT HUP INT TERM
 	tempdir=`umask 077 && mktemp -d "/tmp/${0##*/}.XXXXXXXX"` && \
-		[ -n "${tempdir:++}" ] && test -d "${tempdir}" || \
+		[ -n "${tempdir:++}" ] && test -d "$tempdir" || \
 		Fatal 'cannot create temporary directory'
-	fifo="${tempdir}/fifo"
-	mkfifo -- "${fifo}" || Fatal "cannot create fifo ${fifo}"
-	Echo "${first}" >"${fifo}" &
+	fifo=$tempdir/fifo
+	mkfifo -- "$fifo" || Fatal "cannot create fifo $fifo"
+	Echo "$first" >"$fifo" &
 	process=${!}
 	exc="${exc#exec }"
-	eval "${exc}" | comm ${commopts} -- "${fifo}" -
-	exitstatus=${?}
+	eval "$exc" | comm $commopts -- "$fifo" -
+	exitstatus=$?
 	process=
 	Cleanup
-	exit ${exitstatus}
+	exit $exitstatus
 }
 
-case ${1} in
+case $1 in
 save)
-	[ ${#} -eq 1 ] || Usage
+	[ $# -eq 1 ] || Usage
 	Save;;
 restore)
-	[ ${#} -eq 1 ] || Usage
+	[ $# -eq 1 ] || Usage
 	Restore;;
 test)
-	[ ${#} -eq 1 ] || Usage
+	[ $# -eq 1 ] || Usage
 	Comm Installed Would;;
 diff|comm)
-	[ ${#} -eq 1 ] || Usage
+	[ $# -eq 1 ] || Usage
 	Comm World Saved;;
 would|empty|pretend)
-	[ ${#} -eq 1 ] || Usage
+	[ $# -eq 1 ] || Usage
 	Exec Would;;
 installed)
-	[ ${#} -eq 1 ] || Usage
+	[ $# -eq 1 ] || Usage
 	Exec Installed;;
 world|cat)
-	[ ${#} -eq 1 ] || Usage
+	[ $# -eq 1 ] || Usage
 	Exec World;;
 saved|sworld|scat)
-	[ ${#} -eq 1 ] || Usage
+	[ $# -eq 1 ] || Usage
 	Exec Saved;;
 grep)
 	shift
-	Pipe World grep "${@}";;
+	Pipe World grep "$@";;
 sgrep)
 	shift
-	Pipe Saved grep "${@}";;
+	Pipe Saved grep "$@";;
 worldpkg*)
-	[ ${#} -eq 1 ] || Usage
+	[ $# -eq 1 ] || Usage
 	Exec WorldPkgs;;
 savedpkg*)
-	[ ${#} -eq 1 ] || Usage
+	[ $# -eq 1 ] || Usage
 	Exec SavedPkgs;;
 worldset*)
-	[ ${#} -eq 1 ] || Usage
+	[ $# -eq 1 ] || Usage
 	Exec WorldSets;;
 savedset*)
-	[ ${#} -eq 1 ] || Usage
+	[ $# -eq 1 ] || Usage
 	Exec SavedSets;;
 help)
-	[ ${#} -eq 1 ]
-	Usage ${?};;
+	[ $# -eq 1 ]
+	Usage $?;;
 *)
 	Usage;;
 esac
