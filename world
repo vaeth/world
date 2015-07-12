@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-
+set -u
 unset LC_ALL
 export LC_COLLATE=C
 
@@ -13,7 +13,7 @@ Fatal() {
 	exit $exitstatus
 }
 
-eprefix=$EPREFIX
+eprefix=${EPREFIX-}
 world=$eprefix/var/lib/portage/world
 worldsets=${world}_sets
 save=$eprefix/etc/portage/world
