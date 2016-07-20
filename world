@@ -267,9 +267,9 @@ Comm() {
 		exit
 	fi
 	trap Cleanup EXIT HUP INT TERM
-	tempdir=`umask 077 && mktemp -d "/tmp/${0##*/}.XXXXXXXX"` && \
-		[ -n "${tempdir:++}" ] && test -d "$tempdir" || \
-		Fatal 'cannot create temporary directory'
+	tempdir=`umask 077 && mktemp -d -- "${TMPDIR:-/tmp}/${0##*/}.XXXXXXXX"` \
+		&& [ -n "${tempdir:++}" ] && test -d "$tempdir" \
+		|| Fatal 'cannot create temporary directory'
 	fifo=$tempdir/fifo
 	mkfifo -- "$fifo" || Fatal "cannot create fifo $fifo"
 	Echo "$first" >"$fifo" &
