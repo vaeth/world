@@ -83,13 +83,14 @@ quiet=false
 force=false
 exact='='
 OPTIND=1
-while getopts '012fqh?' opt
+while getopts '012fqh' opt
 do	case $opt in
 	0)	exact=;;
 	1)	commopts='-13';;
 	2)	commopts='-23';;
 	f)	force=:;;
 	q)	quiet=:;;
+	'?')	exit 1;;
 	*)	Usage 0;;
 esac
 done

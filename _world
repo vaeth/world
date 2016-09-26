@@ -2,7 +2,7 @@
 local context state state_descr line
 typeset -A opt_args
 _arguments -s -S -A '-*' : \
-'(1 -)'{'-h','-\\?'}'[help]' \
+'(1 -)-h[help]' \
 '-f[print only what is installed but not saved/in @world]' \
 '-q[quiet]' \
 '-0[do not prefix exact versions with "="]' \
