@@ -1,7 +1,8 @@
 #!/usr/bin/env sh
 set -u
+LC_COLLATE=C
+export LC_COLLATE
 unset LC_ALL
-export LC_COLLATE=C
 
 Echo() {
 	printf '%s\n' "$*"
