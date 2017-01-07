@@ -16,7 +16,7 @@ emerge --unmerge `world -2 test`
 
 For more details, see the output of "world help".
 
-For installation, copy world with executable permission in your path.
-To obtain support for zsh completion, you can copy _world to a
+For installation, copy bin/* with executable permission in your path.
+To obtain support for zsh completion, you can copy zsh/* to a
 directory of zsh's $fpath
 There is also an ebuild in the mv overlay (which is available by layman).
