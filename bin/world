@@ -48,7 +48,7 @@ diff | comm
 	default: print both, but packages in the backup with leading tabs.
 would | empty | pretend
 	Print (sorted) all packages which would be installed with
-		emerge -eD --with-bdeps=y @system @world
+		emerge -eD --with-bdeps=y @world
 installed
 	print (sorted) all installed packages
 world | cat
@@ -183,7 +183,7 @@ Restore() {
 Would() {
 	would=
 	would=`emerge --ignore-default-opts --color=n --quiet=y \
-		--with-bdeps=y -Dep @system @world` || {
+		--with-bdeps=y -Dep @world` || {
 		Echo "$would"
 		Fatal 'emerge failed'
 	}
