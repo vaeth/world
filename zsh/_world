@@ -1,4 +1,6 @@
 #compdef world
+# (C) Martin V\"ath <martin at mvath.de>
+# SPDX-License-Identifier: BSD-3-Clause
 local context state state_descr line
 typeset -A opt_args
 _arguments -s -S -A '-*' : \

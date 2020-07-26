@@ -1,7 +1,8 @@
 # world
 
-(C) Martin Väth <martin@mvath.de>
-This project is under the BSD license.
+(C) Martin Väth (martin at mvath.de).
+This project is under the BSD license 2.0 (“3-clause BSD license”).
+SPDX-License-Identifier: BSD-3-Clause
 
 __world__ is for the Gentoo __portage__ system to organize your `world` file
 and to find installed packages or differences to `@world` (`--depclean`)
